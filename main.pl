@@ -34,6 +34,14 @@ sub parse_message_content ($message) {
     (\%headers, $body);
 }
 
+sub sd_info (@message) {
+    say STDERR '<6>' . join '', @message;
+}
+
+sub sd_warn (@message) {
+    say STDERR '<4>' . join '', @message;
+}
+
 while(my $conn = $server->accept()) {
     my $client = Net::SMTP::Server::Client->new($conn) or die;
     $client->process || next;
@@ -43,24 +51,27 @@ while(my $conn = $server->accept()) {
 
     my $subject = $headers->{Subject} || '[NO SUBJECT]';
     my $sender = $client->{FROM} || '[NO SENDER]';
-    $sender =~ s/^<|>$//g;
 
     my ($endpoint, $payload);
 
     my $message = <<EOF;
 【$subject】
-<$sender>
+$sender
 
 $body
 EOF
 
-    for my $mail_to (@{ $client->{TO} }) {
-        $mail_to =~ s/^<|>$//g;
-        for my $dest (split '@', "$mail_to\@$sender") {
+    my @address = (@{ $client->{TO} }, $sender);
+
+    sd_info "address: ", join ", ", @address;
+
+    for my $address (@address) {
+        $address =~ s/^<|>$//g;
+        for my $dest (split '@', $address) {
             my ($number, $group);
 
             if (($number) = ($dest =~ /^p_(\d+)/)) {
-                say "send to private: $number";
+                sd_info "send to private: $number";
                 $endpoint = "$ENV{ONEBOT_API}/send_private_msg";
                 $payload = {
                     user_id => $number,
@@ -69,7 +80,7 @@ EOF
                     ]
                 };
             } elsif (($group) = ($dest =~ /^g_(\d+)/)) {
-                say "send to group: $group";
+                sd_info "send to group: $group";
                 $endpoint = "$ENV{ONEBOT_API}/send_group_msg";
                 $payload = {
                     group_id => $group,
@@ -78,7 +89,7 @@ EOF
                     ]
                 }
             } elsif (($number, $group) = ($dest =~ /^m_(\d+)_(\d+)/)) {
-                say "send to someone at group: $number\@$group";
+                sd_info "send to someone at group: $number\@$group";
                 $endpoint = "$ENV{ONEBOT_API}/send_group_msg";
                 $payload = {
                     group_id => $group,
@@ -89,7 +100,7 @@ EOF
                     ]
                 }
             } else {
-                warn "unknown dest: $dest";
+                sd_info "unknown dest: $dest";
                 next;
             }
 
@@ -104,7 +115,7 @@ EOF
                 my $data = $json->decode($resp->{content});
                 die unless $data->{status} eq 'ok';
             };
-            warn JSON::to_json($resp) unless $ok;
+            sd_warn JSON::to_json($resp) unless $ok;
             last;
         }
     }
