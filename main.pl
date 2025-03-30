@@ -53,56 +53,59 @@ $sender
 $body
 EOF
 
-    for my $dest (@{ $client->{TO} }) {
-        $dest =~ s/^<|>$//g;
-        my ($number, $group);
+    for my $mail_to (@{ $client->{TO} }) {
+        $mail_to =~ s/^<|>$//g;
+        for my $dst (split '@', $mail_to) {
+            my ($number, $group);
 
-        if (($number) = ($dest =~ /^p_(\d+)/)) {
-            say "send to private: $number";
-            $endpoint = "$ENV{ONEBOT_API}/send_private_msg";
-            $payload = {
-                user_id => $number,
-                message => [
-                    { type => 'text', data => { text => $message } },
-                ]
+            if (($number) = ($dest =~ /^p_(\d+)/)) {
+                say "send to private: $number";
+                $endpoint = "$ENV{ONEBOT_API}/send_private_msg";
+                $payload = {
+                    user_id => $number,
+                    message => [
+                        { type => 'text', data => { text => $message } },
+                    ]
+                };
+            } elsif (($group) = ($dest =~ /^g_(\d+)/)) {
+                say "send to group: $group";
+                $endpoint = "$ENV{ONEBOT_API}/send_group_msg";
+                $payload = {
+                    group_id => $group,
+                    message => [
+                        { type => 'text', data => { text => $message } },
+                    ]
+                }
+            } elsif (($number, $group) = ($dest =~ /^m_(\d+)_(\d+)/)) {
+                say "send to someone at group: $number\@$group";
+                $endpoint = "$ENV{ONEBOT_API}/send_group_msg";
+                $payload = {
+                    group_id => $group,
+                    message => [
+                        { type => 'at', data => { qq => $number } },
+                        { type => 'text', data => { text => "\n" } },
+                        { type => 'text', data => { text => $message } },
+                    ]
+                }
+            } else {
+                warn "unknown dest: $dest";
+                next;
+            }
+
+            my $resp = $ua->post(
+                $endpoint => {
+                    content => $json->encode($payload),
+                }
+            );
+
+            my $ok = eval {
+                die unless $resp->{success};
+                my $data = $json->decode($resp->{content});
+                die unless $data->{status} eq 'ok';
             };
-        } elsif (($group) = ($dest =~ /^g_(\d+)/)) {
-            say "send to group: $group";
-            $endpoint = "$ENV{ONEBOT_API}/send_group_msg";
-            $payload = {
-                group_id => $group,
-                message => [
-                    { type => 'text', data => { text => $message } },
-                ]
-            }
-        } elsif (($number, $group) = ($dest =~ /^m_(\d+)_(\d+)/)) {
-            say "send to someone at group: $number\@$group";
-            $endpoint = "$ENV{ONEBOT_API}/send_group_msg";
-            $payload = {
-                group_id => $group,
-                message => [
-                    { type => 'at', data => { qq => $number } },
-                    { type => 'text', data => { text => "\n" } },
-                    { type => 'text', data => { text => $message } },
-                ]
-            }
-        } else {
-            warn "unknown dest: $dest";
-            next;
+            warn JSON::to_json($resp) unless $ok;
+            last;
         }
-
-        my $resp = $ua->post(
-            $endpoint => {
-                content => $json->encode($payload),
-            }
-        );
-
-        my $ok = eval {
-            die unless $resp->{success};
-            my $data = $json->decode($resp->{content});
-            die unless $data->{status} eq 'ok';
-        };
-        warn JSON::to_json($resp) unless $ok;
     }
 }
 
