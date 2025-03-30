@@ -29,6 +29,7 @@ my $ua = HTTP::Tiny->new(
 sub parse_message_content ($message) {
     my ($header, $body) = ($message =~ /^(.*?)\r\n\r\n(.*)/s);
     my %headers = map { /([^:]*): (.*)/ } split "\r\n", $header;
+    $body //= $message; # if no headers
     $body =~ s/\s*$//s;
     (\%headers, $body);
 }
