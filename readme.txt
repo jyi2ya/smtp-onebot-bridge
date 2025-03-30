@@ -37,15 +37,13 @@ smtp-onebot-bridge
 收件人说明
 ----------
 
-收件人的地址里，邮件服务提供商的部分会被忽略，只有邮件用户名会控制 onebot 的收件人。
-
-哎哎，现在不忽略了，但是懒得写是怎么回事了。总之它会优先看用户名，再看邮件服务提供商。
+在一封由 aa@bb 发往 cc@dd 的邮件里，程序会依次检查 cc、dd、aa、bb，并且从中寻找满足格式要求的条目。选择第一个作为发送对象。
 
 具体来说有三种格式:
 
-* q_<number>@<dont_care>: 向号码为 <number> 的好友发送私聊消息
-* g_<group_id>@<dont_care>: 向号码为 <group_id> 的群组发送消息
-* m_<number>_<group_id>@<dont_care>: 在号码为 <group_id> 的群组内发送消息，并且 at 号码为 <number> 的成员
+* q_<number>: 向号码为 <number> 的好友发送私聊消息
+* g_<group_id>: 向号码为 <group_id> 的群组发送消息
+* m_<number>_<group_id>: 在号码为 <group_id> 的群组内发送消息，并且 at 号码为 <number> 的成员
 
 ------
 使用例

@@ -33,7 +33,6 @@ sub parse_message_content ($message) {
     (\%headers, $body);
 }
 
-use DDP;
 while(my $conn = $server->accept()) {
     my $client = Net::SMTP::Server::Client->new($conn) or die;
     $client->process || next;
@@ -43,19 +42,20 @@ while(my $conn = $server->accept()) {
 
     my $subject = $headers->{Subject} || '[NO SUBJECT]';
     my $sender = $client->{FROM} || '[NO SENDER]';
+    $sender =~ s/^<|>$//g;
 
     my ($endpoint, $payload);
 
     my $message = <<EOF;
 【$subject】
-$sender
+<$sender>
 
 $body
 EOF
 
     for my $mail_to (@{ $client->{TO} }) {
         $mail_to =~ s/^<|>$//g;
-        for my $dst (split '@', $mail_to) {
+        for my $dest (split '@', "$mail_to\@$sender") {
             my ($number, $group);
 
             if (($number) = ($dest =~ /^p_(\d+)/)) {
