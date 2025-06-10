@@ -26,6 +26,7 @@ smtp-onebot-bridge
 * LISTEN_PORT: SMTP 服务器监听端口，比如 2525
 * ONEBOT_API: onebot 服务的地址，比如 http://192.168.1.114:14283
 * ONEBOT_TOKEN: onebot 服务的鉴权 token，可选
+* ALLOWED_CIDR: 允许发邮件的子网白名单。比如 127.0.0.0/8，支持多个用冒号分隔
 
 ----
 运行
